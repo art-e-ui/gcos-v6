@@ -1,0 +1,8 @@
+{
+  "name": "GlobalCart Online Shop-Netlify",
+  "description": "The official online shop and reseller portal for GlobalCart. Manage your shop, track orders, and boost your sales.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
