@@ -2,6 +2,7 @@ import { useReseller } from "@/lib/reseller-context-hooks";
 import { Package, ShoppingBag, Headphones, ChevronRight, DollarSign, Award, TrendingUp, Eye, Clock, Share2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { resellerPath } from "@/lib/subdomain";
+import { supabase } from "@/lib/supabase";
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import useEmblaCarousel from "embla-carousel-react";
@@ -27,6 +28,46 @@ export default function ResellerDashboard() {
   
   const [adBoostOpen, setAdBoostOpen] = useState(false);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "center" });
+  const [totalNetProfit, setTotalNetProfit] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!reseller?.id) return;
+
+    const fetchNetProfit = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("profit, profits")
+          .eq("reseller_id", reseller.id)
+          .eq("status", "Completed");
+
+        if (error) throw error;
+
+        const sum = (data || []).reduce((acc, o) => acc + Number(o.profit || o.profits || 0), 0);
+        setTotalNetProfit(sum);
+      } catch (err) {
+        console.error("Error fetching net profit:", err);
+      }
+    };
+
+    fetchNetProfit();
+
+    const channel = supabase
+      .channel(`reseller_dashboard_profit_${reseller.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'orders',
+        filter: `reseller_id=eq.${reseller.id}`
+      }, () => {
+        fetchNetProfit();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [reseller?.id]);
 
   const shortcuts = useMemo(() => [
     { icon: Package, label: t("reseller.pendingOrders"), href: resellerPath("/reseller/orders"), state: { tab: "Pending" }, color: "text-primary" },
@@ -146,7 +187,9 @@ export default function ResellerDashboard() {
             <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{t("reseller.totalProfit")}</p>
             <div className="flex items-center gap-1.5 mt-1">
               <TrendingUp className="h-4 w-4 text-brand-gold" />
-              <p className="text-xl font-bold text-foreground">${reseller.totalEarnings.toLocaleString()}</p>
+              <p className="text-xl font-bold text-foreground">
+                ${(totalNetProfit ?? reseller.totalEarnings).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
             </div>
           </div>
         </div>

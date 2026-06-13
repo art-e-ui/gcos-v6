@@ -162,6 +162,12 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
                   }
                 }
 
+                const totalDeps = Number(profileData.total_deposits || 0);
+                const totalWids = Number(profileData.total_withdrawals || 0);
+                const netDeps = totalDeps - totalWids;
+                const dbLevel = (profileData.level as string) || prev.level || "VIP-0";
+                const lvlInfo = getLevelByDeposit(netDeps, dbLevel);
+
                 return {
                   ...prev,
                   resellerId: profileData.reseller_id || 0,
@@ -177,6 +183,9 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
                   pendingBalance: Number(profileData.pending_balance || 0),
                   unpickedBalance: Number(profileData.unpicked_balance || 0),
                   totalEarnings: Number(profileData.total_earnings || 0),
+                  totalDeposits: totalDeps,
+                  level: lvlInfo.level,
+                  productLimit: lvlInfo.productLimit,
                   usdtAddress: custom.usdtAddress || '',
                   bankInfo: bankInfoObj,
                 };
@@ -363,6 +372,7 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
           reseller_id: profileData.reseller_id || 0,
           shop_name: profileData.shop_name || 'My Store',
           shop_slug: activeShopSlug,
+          level: profileData.level || 'VIP-0',
           star_rating: 2.0,
           credit_score: 100,
           status: 'active',
@@ -381,7 +391,7 @@ export function ResellerProvider({ children }: { children: React.ReactNode }) {
       const totalDeposits = Number(profileData.total_deposits || 0);
       const totalWithdrawals = Number(profileData.total_withdrawals || 0);
       const netDeposits = totalDeposits - totalWithdrawals;
-      const currentLevelLabel = (currentShopData?.level as string) || "VIP-0";
+      const currentLevelLabel = profileData.level || (currentShopData?.level as string) || "VIP-0";
       const levelInfo = getLevelByDeposit(netDeposits, currentLevelLabel);
 
       // 4. Fetch selected products
